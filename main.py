@@ -60,10 +60,22 @@ async def service_worker():
       }
 
       event.respondWith(
-        caches.match(event.request)
-          .then(response => {
-            return response || fetch(event.request).catch(() => caches.match('/dashboard'));
-          })
+        caches.open(CACHE_NAME).then(async cache => {
+          try {
+            const networkResponse = await fetch(event.request);
+            cache.put(event.request, networkResponse.clone());
+            return networkResponse;
+          } catch (error) {
+            const cachedResponse = await caches.match(event.request);
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            if (event.request.mode === 'navigate') {
+              return caches.match('/dashboard');
+            }
+            return Response.error();
+          }
+        })
       );
     });
 
@@ -126,6 +138,8 @@ async def dashboard():
                 --accent: #38bdf8;
                 --text: #e2e8f0;
                 --success: #22c55e;
+                --warning: #f59e0b;
+                --danger: #ef4444;
             }
             * { box-sizing: border-box; }
             body {
@@ -158,6 +172,11 @@ async def dashboard():
                 padding: 8px 12px;
                 border-radius: 999px;
                 font-size: 0.8rem;
+            }
+            .status.offline {
+                background: rgba(245, 158, 11, 0.12);
+                color: var(--warning);
+                border-color: rgba(245, 158, 11, 0.5);
             }
             .tabs {
                 display: flex;
@@ -214,7 +233,7 @@ async def dashboard():
         <div class="container">
             <div class="header">
                 <div class="brand">SquashAnalytics Pro</div>
-                <div class="status">Sistema operativo: canasta local</div>
+                <div id="network-status" class="status">Conexión: online</div>
             </div>
 
             <div class="tabs">
@@ -266,11 +285,26 @@ async def dashboard():
 
             <section id="alerts" class="panel">
                 <h2>Alertas</h2>
-                <p>No se detectan incidencias críticas. El dashboard queda operativo en modo local mientras se recupera la conexión.</p>
+                <p id="alert-message">No se detectan incidencias críticas. El dashboard queda operativo en modo local mientras se recupera la conexión.</p>
             </section>
         </div>
 
         <script>
+            const networkStatus = document.getElementById('network-status');
+            const alertMessage = document.getElementById('alert-message');
+
+            function updateNetworkStatus() {
+                const online = navigator.onLine;
+                networkStatus.textContent = online ? 'Conexión: online' : 'Conexión: offline';
+                networkStatus.classList.toggle('offline', !online);
+
+                if (!online) {
+                    alertMessage.textContent = 'Se ha perdido la conectividad. El dashboard sigue funcionando en modo local con la última vista cargada.';
+                } else {
+                    alertMessage.textContent = 'No se detectan incidencias críticas. El dashboard queda operativo en modo local mientras se recupera la conexión.';
+                }
+            }
+
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
                     navigator.serviceWorker.register('/sw.js')
@@ -282,6 +316,10 @@ async def dashboard():
                         });
                 });
             }
+
+            window.addEventListener('online', updateNetworkStatus);
+            window.addEventListener('offline', updateNetworkStatus);
+            updateNetworkStatus();
 
             function switchTab(evt, tabId) {
                 document.querySelectorAll('.panel').forEach(panel => panel.classList.remove('active'));
