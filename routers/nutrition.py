@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from manager import manager
@@ -12,10 +12,10 @@ class HydrationEstimateInput(BaseModel):
     peso_base_kg: float = Field(..., gt=20, le=250, description="Peso medido antes del partido, en kg", example=75)
     tasa_sudoracion_ml_min: float = Field(..., ge=0, le=100, description="Tasa de sudoración medida, no inferida por temperatura", example=15)
     minutos_transcurridos: int = Field(..., ge=0, le=600, description="Duración transcurrida en minutos", example=30)
-    liquido ingerido_ml: float = Field(0, ge=0, le=10000, description="Líquido ingerido durante el período, en ml", example=250)
+    liquido_ingerido_ml: float = Field(0, ge=0, le=10000, description="Líquido ingerido durante el período, en ml", example=250)
 
 
-@router.post("/estimate", status_code=status.HTTP_200_OK)
+@router.post("/estimate")
 async def estimate_hydration(data: HydrationEstimateInput):
     """Estimate net fluid loss from supplied measurements; this is not medical advice."""
     sweat_loss_ml = data.tasa_sudoracion_ml_min * data.minutos_transcurridos
