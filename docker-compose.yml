@@ -5,9 +5,11 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-squash_db}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en .env}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./db-init/001_schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+      - ./migrations/20261110_kinematics_and_point_events.sql:/docker-entrypoint-initdb.d/002_kinematics_and_point_events.sql:ro
     healthcheck:
       test:
         [
@@ -25,7 +27,7 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-squash_db}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en .env}@db:5432/${POSTGRES_DB:-squash_db}
     depends_on:
       db:
         condition: service_healthy
