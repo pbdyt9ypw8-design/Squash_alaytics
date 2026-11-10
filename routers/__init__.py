@@ -1,3 +1,3 @@
-"""Router package exports for SquashAnalytics."""
+"""Router package exports."""
 
-from . import telemetry, websockets
+from . import events, telemetry, websockets
