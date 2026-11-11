@@ -11,6 +11,7 @@ router = APIRouter(prefix="/telemetry", tags=["Telemetría y Biomecánica"])
 
 
 @router.post("/frame", status_code=status.HTTP_201_CREATED)
+@router.post("/api/telemetry", status_code=status.HTTP_201_CREATED, include_in_schema=False)
 async def ingest_frame(data: TelemetryFrameCreate):
     """Store a telemetry frame and optional heart-rate reading."""
     if db.pool is None:
@@ -74,6 +75,68 @@ async def ingest_frame(data: TelemetryFrameCreate):
         ) from exc
 
     return {"status": "success", "frame_index": data.frame_index}
+
+
+@router.get("/matches/{partido_id}/history")
+@router.get("/api/matches/{partido_id}/history", include_in_schema=False)
+async def match_history(
+    partido_id: int,
+    limit: int = Query(default=50, ge=1, le=500),
+):
+    """Return recent telemetry frames and heart-rate readings for a match."""
+    if db.pool is None:
+        raise HTTPException(status_code=503, detail="La base de datos no está conectada.")
+
+    query = """
+        SELECT f.time, f.jugador_id, f.frame_index,
+               f.longitud_zancada_cm, f.simetria_zancada_abi,
+               f.angulo_valgo_rodilla_deg, f.flexion_lumbar_deg,
+               f.rotacion_toraco_lumbar_deg, f.coordenada_x, f.coordenada_y,
+               f.en_zona_riesgo_esquina, f.angulo_valgo_tobillo_deg,
+               f.flexion_rodilla_deg, f.elevacion_hombro_deg,
+               f.inclinacion_pelvis_deg, f.retardo_carga_raqueta_ms,
+               (SELECT m.fc_actual
+                FROM metricas_metabolicas AS m
+                WHERE m.partido_id = f.partido_id
+                  AND m.jugador_id = f.jugador_id
+                  AND m.time <= f.time
+                ORDER BY m.time DESC
+                LIMIT 1) AS fc_actual,
+               (SELECT m.zona_fc
+                FROM metricas_metabolicas AS m
+                WHERE m.partido_id = f.partido_id
+                  AND m.jugador_id = f.jugador_id
+                  AND m.time <= f.time
+                ORDER BY m.time DESC
+                LIMIT 1) AS zona_fc
+        FROM telemetria_frames AS f
+        WHERE f.partido_id = $1
+        ORDER BY f.time DESC
+        LIMIT $2
+    """
+    try:
+        async with db.pool.acquire() as connection:
+            rows = await connection.fetch(query, partido_id, limit)
+    except asyncpg.PostgresError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"No se pudo consultar el historial: {exc.__class__.__name__}. Verifica que el esquema SQL esté aplicado.",
+        ) from exc
+
+    historial = []
+    for row in rows:
+        item = dict(row)
+        item["time"] = item["time"].isoformat()
+        for key, value in item.items():
+            if key not in {"time", "jugador_id", "frame_index", "en_zona_riesgo_esquina", "fc_actual", "zona_fc"} and value is not None:
+                item[key] = float(value)
+        historial.append(item)
+
+    return {
+        "partido_id": partido_id,
+        "total_registros": len(historial),
+        "historial": historial,
+    }
 
 
 @router.get("/fatigue-check/{partido_id}/{jugador_id}")
