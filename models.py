@@ -36,3 +36,19 @@ class EventoPuntoCreate(BaseModel):
     zona_destino_x: Optional[float] = Field(None, ge=0, le=6.4)
     zona_destino_y: Optional[float] = Field(None, ge=0, le=9.75)
     zona_rival_debil: bool = False
+
+
+class TacticalZoneSummary(BaseModel):
+    zona_id: int = Field(..., ge=0, le=5)
+    nombre: str
+    aciertos: int = 0
+    errores: int = 0
+    porcentaje_acierto: float = 0.0
+    porcentaje_error: float = 0.0
+    total: int = 0
+
+
+class TacticalCourtStats(BaseModel):
+    partido_id: int
+    jugador_id: Optional[int] = None
+    zonas: list[TacticalZoneSummary] = Field(default_factory=list)
