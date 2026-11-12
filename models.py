@@ -30,12 +30,36 @@ class EventoPuntoCreate(BaseModel):
     set_numero: int = Field(..., ge=1)
     puntuacion_actual: str = Field(..., min_length=1, max_length=20)
     tipo_resultado: Literal["ganador", "error_no_forzado", "stroke", "let"]
-    tipo_golpe: Optional[str] = Field(None, max_length=50)
+    tipo_golpe: Optional[Literal[
+        "derecho", "reves", "boast", "volea", "drop_derecho",
+        "drop_reves", "lob_derecho", "lob_reves"
+    ]] = None
+    tipo_tactica: Optional[Literal["ataque", "defensa"]] = None
+    resultado_tactica: Optional[Literal["acierto", "error"]] = None
+    llegada_t: bool = False
     zona_origen_x: Optional[float] = Field(None, ge=0, le=6.4)
     zona_origen_y: Optional[float] = Field(None, ge=0, le=9.75)
     zona_destino_x: Optional[float] = Field(None, ge=0, le=6.4)
     zona_destino_y: Optional[float] = Field(None, ge=0, le=9.75)
+    zona_destino: Optional[int] = Field(None, ge=0, le=5, description="Zona de la cancha 0-5 para resumen por cuadrantes")
     zona_rival_debil: bool = False
+
+
+class TacticalZoneSummary(BaseModel):
+    zona_id: int = Field(..., ge=0, le=5)
+    nombre: str
+    aciertos: int = 0
+    errores: int = 0
+    porcentaje_acierto: float = 0.0
+    porcentaje_error: float = 0.0
+    total: int = 0
+
+
+class TacticalCourtStats(BaseModel):
+    partido_id: int
+    jugador_id: Optional[int] = None
+    total_caidas: int = 0
+    zonas: list[TacticalZoneSummary] = Field(default_factory=list)
 
 
 class ClinicalProfileCreate(BaseModel):
@@ -52,3 +76,9 @@ class ClinicalProfileCreate(BaseModel):
     vo2max_valor: Optional[float] = Field(None, ge=0, le=100)
     vo2max_formula_hombre: Optional[str] = Field(None, max_length=500)
     vo2max_formula_mujer: Optional[str] = Field(None, max_length=500)
+
+
+class ClinicalProfileResponse(ClinicalProfileCreate):
+    id: int
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
