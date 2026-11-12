@@ -31,10 +31,13 @@ class EventoPuntoCreate(BaseModel):
     puntuacion_actual: str = Field(..., min_length=1, max_length=20)
     tipo_resultado: Literal["ganador", "error_no_forzado", "stroke", "let"]
     tipo_golpe: Optional[str] = Field(None, max_length=50)
+    tipo_tactica: Optional[Literal["borrado", "drive", "drop", "lift", "servicio", "remate", "revés", "derecha", "gancho", "contraataque"]] = None
+    resultado_tactica: Optional[Literal["acierto", "error"]] = None
     zona_origen_x: Optional[float] = Field(None, ge=0, le=6.4)
     zona_origen_y: Optional[float] = Field(None, ge=0, le=9.75)
     zona_destino_x: Optional[float] = Field(None, ge=0, le=6.4)
     zona_destino_y: Optional[float] = Field(None, ge=0, le=9.75)
+    zona_destino: Optional[int] = Field(None, ge=0, le=5, description="Zona de la cancha 0-5 para resumen por cuadrantes")
     zona_rival_debil: bool = False
 
 
@@ -51,4 +54,27 @@ class TacticalZoneSummary(BaseModel):
 class TacticalCourtStats(BaseModel):
     partido_id: int
     jugador_id: Optional[int] = None
+    total_caidas: int = 0
     zonas: list[TacticalZoneSummary] = Field(default_factory=list)
+
+
+class ClinicalProfileCreate(BaseModel):
+    partido_id: int = Field(..., ge=1)
+    jugador_id: int = Field(..., ge=1)
+    nombre: str = Field(..., min_length=1, max_length=200)
+    edad: int = Field(..., ge=1, le=120)
+    deporte: str = Field(..., min_length=1, max_length=120)
+    genero: Literal["masculino", "femenino", "otro"]
+    fase_ciclo_menstrual: Optional[str] = Field(None, max_length=120)
+    descripcion_fase: Optional[str] = Field(None, max_length=1000)
+    entrenamiento_sugerido: Optional[str] = Field(None, max_length=1000)
+    vo2max_metodo: Literal["cooper", "beep_test", "rockport", "manual"] = "manual"
+    vo2max_valor: Optional[float] = Field(None, ge=0, le=100)
+    vo2max_formula_hombre: Optional[str] = Field(None, max_length=500)
+    vo2max_formula_mujer: Optional[str] = Field(None, max_length=500)
+
+
+class ClinicalProfileResponse(ClinicalProfileCreate):
+    id: int
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
