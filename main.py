@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
 from database import connect_db, disconnect_db
-from routers import events, nutrition, telemetry, training_plan, websockets
+from routers import clinical_profile, events, nutrition, telemetry, training_plan, websockets
 
 
 @asynccontextmanager
@@ -20,6 +20,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.include_router(clinical_profile.router)
 app.include_router(telemetry.router)
 app.include_router(websockets.router)
 app.include_router(events.router)
