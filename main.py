@@ -1,8 +1,18 @@
-from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
+from fastapi import FastAPI
+
 from database import connect_db, disconnect_db
-from routers import clinical_profile, events, nutrition, telemetry, training_plan, websockets
+from routers import (
+    clinical_profile,
+    events,
+    nutrition,
+    rm_calculator,
+    tablet_ui,
+    telemetry,
+    training_plan,
+    websockets,
+)
 
 
 @asynccontextmanager
@@ -21,6 +31,8 @@ app = FastAPI(
 )
 
 app.include_router(clinical_profile.router)
+app.include_router(tablet_ui.router)
+app.include_router(rm_calculator.router)
 app.include_router(telemetry.router)
 app.include_router(websockets.router)
 app.include_router(events.router)
